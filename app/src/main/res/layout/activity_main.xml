@@ -9,6 +9,7 @@
     <com.weeboos.mylibrary.BezierLineChart
         android:id="@+id/bezier"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:background="#eeeeee"/>
 
 </FrameLayout>

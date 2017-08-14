@@ -44,9 +44,10 @@ public class BezierLineChart extends View {
 
     private int markCount = 6;
 
-    private String[] xDataList = {"5.1","5.2","5.3","5.4","5.5","5.6","5.7"};
+    private ArrayList<String> xDataList = new ArrayList<>();
 
-    private int[] dataList = {60,70,58,65,80,72,69};
+    //检测的数据list
+    private ArrayList<Float> dataList = new ArrayList<>();
 
     private ArrayList<Point> points = new ArrayList<>();
 
@@ -55,6 +56,10 @@ public class BezierLineChart extends View {
     private boolean isClick = false;
 
     private Point selectPoint;
+
+    private Handler handler;
+
+    private Runnable runnable;
 
     public BezierLineChart(Context context) {
         this(context,null);
@@ -145,19 +150,28 @@ public class BezierLineChart extends View {
 
     private void showView() {
         isClick = true;
+        //取消runable
+        if(handler!=null&&runnable!=null){
+            handler.removeCallbacks(runnable);
+        }
         invalidate();
     }
 
-    public void setData(String[] xList, int[] dataList){
+    public void setData(ArrayList<String> xList, ArrayList<Float> dataList){
         xDataList = xList;
         this.dataList = dataList;
         invalidate();
     }
 
     private void drawPopWindow(Canvas canvas){
+        //绘制过选中点的直线
+        linePaint.setColor(Color.GRAY);
+        linePaint.setStrokeWidth(dipToPx(2));
+        canvas.drawLine(selectPoint.getPointX(),viewHeight*0.8f/markCount,selectPoint.getPointX(),viewHeight*0.8f,linePaint);
         linePaint.setStyle(Paint.Style.FILL);
         linePaint.setColor(Color.BLACK);
         textPaint.setColor(Color.WHITE);
+
         if(selectPoint!=null){
             if(Build.VERSION.SDK_INT >=21) {
                 canvas.drawRoundRect(selectPoint.getPointX() - dipToPx(80), selectPoint.getPointY() - dipToPx(20), selectPoint.getPointX() - dipToPx(10), selectPoint.getPointY() + dipToPx(20), 10, 10, linePaint);
@@ -180,6 +194,23 @@ public class BezierLineChart extends View {
             canvas.drawBitmap(bmp,selectPoint.getPointX() - dipToPx(76),selectPoint.getPointY()- dipToPx(18),new Paint());
             canvas.drawText("收缩压",selectPoint.getPointX()-dipToPx(40),selectPoint.getPointY()- dipToPx(6),textPaint);
             canvas.drawText("122 mmHg",selectPoint.getPointX()-dipToPx(44),selectPoint.getPointY()+dipToPx(12),textPaint);
+
+            //两秒后隐藏popWindow
+            if(handler==null) {
+                handler = new Handler();
+                if(runnable == null){
+                    runnable = new Runnable() {
+                        @Override
+                        public void run() {
+                            isClick = false;
+                            invalidate();
+                        }
+                    };
+                }
+            }else {
+                handler.postDelayed(runnable,2000L);
+            }
+
         }
     }
 
@@ -234,15 +265,20 @@ public class BezierLineChart extends View {
         path.reset();
     }
 
+    //画曲线上的端点
     private void drawPoint(Canvas canvas) {
-        linePaint.setColor(Color.GREEN);
-        linePaint.setStyle(Paint.Style.FILL);
+
         points.clear();
-        for(int i = 0;i<xDataList.length;i++){
-            float detectionY = (markCount-(dataList[i]/20))*viewHeight*0.8f/markCount-(viewHeight*0.8f/markCount)*(dataList[i]%20)/20;
-            float detectionX = 2*paddingWidth+(viewWidth-3*paddingWidth)*i/(xDataList.length-1);
+        for(int i = 0;i<xDataList.size();i++){
+            float detectionY = (markCount-(dataList.get(i)/20))*viewHeight*0.8f/markCount-(viewHeight*0.8f/markCount)*(dataList.get(i)%20)/20;
+            float detectionX = 2*paddingWidth+(viewWidth-3*paddingWidth)*i/(xDataList.size()-1);
             Point point = new Point(detectionX,detectionY);
             points.add(point);
+            linePaint.setStyle(Paint.Style.FILL);
+            linePaint.setColor(Color.WHITE);
+            canvas.drawCircle(detectionX,detectionY,dipToPx(8),linePaint);
+            linePaint.setColor(Color.GREEN);
+
             canvas.drawCircle(detectionX,detectionY,dipToPx(5),linePaint);
 
         }
@@ -266,10 +302,10 @@ public class BezierLineChart extends View {
         canvas.drawLine(paddingWidth,viewHeight*0.8f,viewWidth,viewHeight*0.8f,linePaint);
 
         float coordinateX;
-        for(int i = 0;i<xDataList.length;i++){
+        for(int i = 0;i<xDataList.size();i++){
             //绘制文本
-            coordinateX = 2*paddingWidth+(viewWidth-3*paddingWidth)*i/(xDataList.length-1);
-            canvas.drawText(xDataList[i],coordinateX,viewHeight*0.8f+dipToPx(20),textPaint);
+            coordinateX = 2*paddingWidth+(viewWidth-3*paddingWidth)*i/(xDataList.size()-1);
+            canvas.drawText(xDataList.get(i),coordinateX,viewHeight*0.8f+dipToPx(20),textPaint);
         }
     }
 
